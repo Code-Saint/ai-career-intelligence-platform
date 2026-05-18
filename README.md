@@ -43,5 +43,41 @@ An autonomous AI-powered technical job market intelligence system built using n8
 
 ![Dashboard Preview](screenshots/PDF_report_screenshots/dashboard_page.png)
 
+## System Architecture
+
+```text
+Job Sources (RemoteOK + Adzuna)
+            ↓
+      n8n Automation
+            ↓
+     Skill Aggregation
+            ↓
+      AI Trend Analysis
+            ↓
+ PDF Dashboard Generation
+            ↓
+ Telegram Report Delivery
+            ↓
+ Error Monitoring Workflow
+```
+
+## Automation Workflows
+
+### 1. AI Job Hunter
+- Aggregates technical jobs daily
+- Filters duplicate listings
+- Uses AI for intelligent job insights
+- Sends Telegram notifications automatically
+
+### 2. Weekly Skill Intelligence
+- Performs weekly skill trend analysis
+- Generates PDF intelligence dashboards
+- Visualizes market demand using Chart.js
+- Delivers reports through Telegram
+
+### 3. Error Monitoring
+- Detects workflow failures automatically
+- Sends real-time Telegram alerts
+- Improves automation reliability
 
 
