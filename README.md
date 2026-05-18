@@ -46,7 +46,7 @@ An autonomous AI-powered technical job market intelligence system built using n8
 ## System Architecture
 
 ```text
-Job Sources (RemoteOK + Adzuna)
+Job Sources (RemoteOK + Arbeitnow)
             ↓
       n8n Automation
             ↓
