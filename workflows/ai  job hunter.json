@@ -1,0 +1,633 @@
+{
+  "name": "ai  job hunter",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => {\n\n  try {\n\n    const ai = item.json.ai || {};\n\n    let score = parseFloat(ai.suitability_score || 0);\n\n    if (isNaN(score)) {\n      score = 0;\n    }\n\n    // Convert percentages to /10 scale\n    if (score > 10) {\n      score = score / 10;\n    }\n\n    // Convert decimals like 0.7 → 7\n    if (score > 0 && score <= 1) {\n      score = score * 10;\n    }\n\n    const worth = String(\n      ai.worth_applying || \"\"\n    ).trim().toLowerCase();\n\n    // Reject explicit NOs\n    if (\n      [\"no\", \"false\", \"0\"].includes(worth)\n    ) {\n      return false;\n    }\n\n    // Reject low scores\n    if (score < 5) {\n      return false;\n    }\n\n    return true;\n\n  } catch {\n\n    return false;\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        -608
+      ],
+      "id": "b8e7c1f3-7b36-48b1-9a09-2f6fd618bbfa",
+      "name": "AI result Filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => {\n  const position = (item.json.position || \"\").toLowerCase();\n  const tags = (item.json.tags || []).join(\" \").toLowerCase();\n\n  const text = position + \" \" + tags;\n\n  // STRICTLY ALLOWED TECH DOMAINS\n  const allowedKeywords = [\n    \"python\",\n    \"backend\",\n    \"software engineer\",\n    \"software developer\",\n    \"cybersecurity\",\n    \"security engineer\",\n    \"soc\",\n    \"siem\",\n    \"devsecops\",\n    \"cloud\",\n    \"api\",\n    \"flask\",\n    \"linux\",\n    \"network\",\n    \"automation\",\n    \"pentest\",\n    \"threat\",\n    \"detection\",\n    \"developer\",\n    \"engineer\",\n    \"analyst\",\n    \"java\",\n    \"c++\",\n    \"javascript\",\n    \"full stack\",\n    \"fullstack\",\n    \"web security\",\n    \"application security\"\n  ];\n\n  const matchesAllowed = allowedKeywords.some(keyword =>\n    text.includes(keyword)\n  );\n\n  if (!matchesAllowed) return false;\n\n  // BLOCK SENIOR/UNREALISTIC JOBS\n  const blockedSeniorKeywords = [\n    \"senior\",\n    \"lead\",\n    \"principal\",\n    \"architect\",\n    \"manager\",\n    \"director\",\n    \"head\",\n    \"staff\",\n    \"expert\"\n  ];\n\n  const isSenior = blockedSeniorKeywords.some(keyword =>\n    text.includes(keyword)\n  );\n\n  if (isSenior) return false;\n\n  // BLOCK NON-TECH JOBS\n  const blockedNonTechKeywords = [\n    \"sales\",\n    \"marketing\",\n    \"therapist\",\n    \"mental health\",\n    \"healthcare\",\n    \"doctor\",\n    \"nurse\",\n    \"designer\",\n    \"ui\",\n    \"ux\",\n    \"hr\",\n    \"recruiter\",\n    \"customer support\",\n    \"business development\",\n    \"seo\",\n    \"content writer\",\n    \"accountant\",\n    \"finance\",\n    \"lawyer\",\n    \"legal\"\n  ];\n\n  const isNonTech = blockedNonTechKeywords.some(keyword =>\n    text.includes(keyword)\n  );\n\n  if (isNonTech) return false;\n\n  return true;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -64
+      ],
+      "id": "22a88d3f-6a83-4abb-9d90-4f4cad8463d1",
+      "name": "Technical/Fresher Filter"
+    },
+    {
+      "parameters": {
+        "chatId": "6110212867",
+        "text": "=🔥 AI Career Match\n\n📌 Position: {{$json.position}}\n\n📌 Company: {{$json.company}}\n\n📌 Suitability Score:\n{{$json.ai.suitability_score}}\n\n📌 Fresher Friendliness:\n{{$json.ai.fresher_friendliness}}\n\n📌 Competition Level:\n{{$json.ai.competition_level}}\n\n📌 Estimated Interview Probability:\n{{$json.ai.estimated_interview_probability}}\n\n📌 Difficulty:\n{{$json.ai.difficulty}}\n\n📌 Important Skills:\n{{$json.ai.important_skills.join(', ')}}\n\n📌 Missing Skills:\n{{$json.ai.missing_skills.join(', ')}}\n\n📌 Worth Applying:\n{{$json.ai.worth_applying}}\n\n🔗 Apply Link:\n{{$json.url}}\n\n📌 Short Reason:\n{{$json.ai.short_reason}}\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3072,
+        -704
+      ],
+      "id": "f6e61449-437a-4380-9a2f-b56b8d56926d",
+      "name": "Telegram Notification",
+      "webhookId": "8965aaa4-2585-44d3-b909-a0f06720e03d",
+      "credentials": {
+        "telegramApi": {
+          "id": "XvdTwdBWuWK92Tg4",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg",
+          "mode": "list",
+          "cachedResultName": "AI Job Intelligence Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{new Date().toLocaleDateString()}}",
+            "Position": "={{$json.position}}",
+            "Company": "={{$json.company}}",
+            "Important Skills": "={{$json.ai.important_skills.join(', ')}}",
+            "Missing Skills": "={{$json.ai.important_skills.join(', ')}}",
+            "Suitability Score": "={{$json.ai.missing_skills.join(', ')}}",
+            "Apply Link": "={{$json.url || ''}}",
+            "Job ID": "={{$json.id}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job ID",
+              "displayName": "Job ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "displayName": "Position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Important Skills",
+              "displayName": "Important Skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Missing Skills",
+              "displayName": "Missing Skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suitability Score",
+              "displayName": "Suitability Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Apply Link",
+              "displayName": "Apply Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3088,
+        -448
+      ],
+      "id": "7dc002d1-42be-4e53-b5c4-eef38e823942",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "IwqmHoFS4N4iYIC5",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg",
+          "mode": "list",
+          "cachedResultName": "AI Job Intelligence Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        -416
+      ],
+      "id": "a03b3742-339b-4d28-9b3b-c7b5e4020844",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "IwqmHoFS4N4iYIC5",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        336
+      ],
+      "id": "61d8b0d8-d484-40dc-a9fd-fae859f79220",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n\n  return {\n    json: {\n      id: item.json.slug,\n      position: item.json.title,\n      company: item.json.company_name,\n      tags: item.json.tags || [],\n      url: item.json.url,\n      source: \"Arbeitnow\",\n      location: item.json.location,\n      remote: item.json.remote,\n      created_at: item.json.created_at,\n      description: item.json.description\n    }\n  };\n\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        336
+      ],
+      "id": "71430936-8023-4ef8-8b54-4180fe08677e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        176,
+        32
+      ],
+      "id": "ae214a14-f4b6-4cbc-b501-242ee76a350d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "url": "https://www.arbeitnow.com/api/job-board-api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -624,
+        336
+      ],
+      "id": "46344598-61da-4fb4-8cbe-7be12b949ea5",
+      "name": "Arbeitnow"
+    },
+    {
+      "parameters": {
+        "url": "https://remoteok.com/api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -544,
+        -16
+      ],
+      "id": "86543bf1-2006-43f7-a51f-14e95a19758d",
+      "name": "RemoteOK"
+    },
+    {
+      "parameters": {
+        "jsCode": "// INPUT 0 = incoming jobs\nconst incomingJobs = $input.all(0);\n\n// INPUT 1 = existing sheet rows\nconst existingRows = $input.all(1);\n\n// Build set of existing Job IDs\nconst existingIds = new Set(\n  existingRows.map(row => String(row.json[\"Job ID\"]))\n);\n\n// Keep only NEW jobs\nconst newJobs = incomingJobs.filter(job => {\n  return !existingIds.has(String(job.json.id));\n});\n\nreturn newJobs;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        -48
+      ],
+      "id": "987837d9-1133-463e-9cb8-73b4d9ee9131",
+      "name": "Duplicate filter"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GROQ_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": \"meta-llama/llama-4-scout-17b-16e-instruct\",\n\n  \"response_format\": {\n    \"type\": \"json_object\"\n  },\n\n  \"messages\": [\n    {\n      \"role\": \"user\",\n\n      \"content\": `Analyze this job for a fresher cybersecurity/backend engineering candidate.\n\nCandidate Skills:\n- Python\n- Flask APIs\n- Networking\n- Linux\n- Vulnerability Assessment\n- Security Tool Development\n- Detection Engineering\n- Backend Engineering\n- DevSecOps Basics\n- CEH Certified\n\nJob Data:\nPosition: ${$json.position}\nCompany: ${$json.company}\nTags: ${($json.tags || []).join(\", \")}\nDescription: ${$json.description || \"\"}\nApply URL: ${$json.url || \"\"}\n\nRules:\n- Reject non-technical jobs\n- Reject writing/content/marketing/sales roles\n- Reject unrealistic senior roles\n- Always return valid JSON\n- Never leave fields empty\n- If unsuitable, set worth_applying to NO\n\nReturn ONLY valid JSON in this exact format:\n\n{\n  \"position\": \"\",\n  \"company\": \"\",\n  \"suitability_score\": \"Return ONLY a number from 1 to 10\",\n  \"fresher_friendliness\": \"\",\n  \"competition_level\": \"\",\n  \"estimated_interview_probability\": \"\",\n  \"difficulty\": \"\",\n  \"important_skills\": [],\n  \"missing_skills\": [],\n  \"worth_applying\": \"\",\n  \"short_reason\": \"\"\n}`\n    }\n  ]\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1952,
+        -32
+      ],
+      "id": "810f06ad-2a62-404a-a1d5-5d04c567aa2a",
+      "name": "AI Career Analysis"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1424,
+        -48
+      ],
+      "id": "1ebc07d8-69e1-475c-bc63-9142279bd6f9",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        -32
+      ],
+      "id": "606d10ac-4b6c-4dd2-b7e8-f7d6c5eee194",
+      "name": "Wait",
+      "webhookId": "3e9ba032-347c-4d54-b8d9-0e989716af44"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2208,
+        -448
+      ],
+      "id": "412e52ee-5254-4939-8cbe-b161051c3aa3",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n\n  const job = item.json;\n\n  return {\n    json: {\n\n      id:\n        job.id ||\n        \"\",\n\n      position:\n        job.position ||\n        job.title ||\n        job.jobTitle ||\n        job.role ||\n        \"Unknown Position\",\n\n      company:\n        job.company ||\n        job.company_name ||\n        job.employer ||\n        \"Unknown Company\",\n\n      url:\n        job.url ||\n        job.apply_url ||\n        job.link ||\n        job.applyLink ||\n        \"No link available\",\n\n      tags:\n        Array.isArray(job.tags)\n          ? job.tags\n          : [],\n\n      description:\n        job.description ||\n        job.desc ||\n        job.job_description ||\n        \"\",\n\n      source:\n        job.source ||\n        \"unknown\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -144
+      ],
+      "id": "bc98d463-5d23-4748-be91-d7b1d9addbb3",
+      "name": "Normalize Jobs"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n\n  let raw = item.json.choices?.[0]?.message?.content || \"\";\n\n  try {\n\n    raw = raw\n      .replace(/```json/g, \"\")\n      .replace(/```/g, \"\")\n      .trim();\n\n    const parsed = JSON.parse(raw);\n\n    // KEEP ORIGINAL DATA\n    item.json.ai = parsed;\n\n  } catch (e) {\n\n    item.json.ai = {\n\n      suitability_score: \"0%\",\n\n      fresher_friendliness: \"Low\",\n\n      competition_level: \"Unknown\",\n\n      estimated_interview_probability: \"0%\",\n\n      difficulty: \"Unknown\",\n\n      important_skills: [],\n\n      missing_skills: [],\n\n      worth_applying: \"NO\",\n\n      short_reason: \"AI parsing failed.\"\n    };\n\n    item.json.parse_error = raw;\n  }\n\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        -608
+      ],
+      "id": "7948cc15-eab5-4d55-9fd6-e0da99407fd1",
+      "name": "Parse AI JSON"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -960,
+        32
+      ],
+      "id": "f7ca4640-b747-4a05-8f03-adfcf8203965",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI result Filter": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Technical/Fresher Filter": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Duplicate filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Duplicate filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Arbeitnow": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RemoteOK": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Normalize Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate filter": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Career Analysis": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Career Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Parse AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Jobs": {
+      "main": [
+        [
+          {
+            "node": "Technical/Fresher Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI JSON": {
+      "main": [
+        [
+          {
+            "node": "AI result Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RemoteOK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Arbeitnow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d588a632-1465-4ce0-bf35-622a0f5950fe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e1a04c3d6dff05c39b5843aba075831d11b503485f16d9e3574f7e428fd6d490"
+  },
+  "id": "X63fGaAkHGkE3Skj",
+  "tags": []
+}

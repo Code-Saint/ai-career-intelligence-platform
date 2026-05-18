@@ -1,0 +1,320 @@
+{
+  "name": "Weekly Skill Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1136,
+        -48
+      ],
+      "id": "76aae63a-a87a-480e-add5-21a661450c22",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg",
+          "mode": "list",
+          "cachedResultName": "AI Job Intelligence Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Uy2GKIkTIuVZbo1mPd59ZldnUEzghIrtMpTWH4CmDsg/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -928,
+        -48
+      ],
+      "id": "a12157a7-f9dc-48c2-b5d8-a0ec3b0b6359",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "IwqmHoFS4N4iYIC5",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sevenDaysAgo = new Date();\nsevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);\n\nreturn items.filter(item => {\n\n  const rawDate = item.json.Date;\n\n  if (!rawDate) return false;\n\n  const jobDate = new Date(rawDate);\n\n  return jobDate >= sevenDaysAgo;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        -48
+      ],
+      "id": "f8618d11-3a7c-4389-9ea7-fd98500c424a",
+      "name": "Weekly filter"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GROQ_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\nJSON.stringify({\n  model: \"llama-3.1-8b-instant\",\n\n  messages: [\n    {\n      role: \"system\",\n\n      content: `\nYou are a professional labor market intelligence analyst.\n\nAnalyze the provided technical market analytics data and generate:\n\n1. Executive Summary\n2. Top Technical Trends\n3. Skill Demand Insights\n4. Market Intelligence\n5. Career Opportunity Insights\n6. Weekly Recommendations\n7. Fresher Strategy Recommendations\n\nIMPORTANT:\n- Use REAL statistics from the JSON data\n- Mention actual percentages and counts\n- Sound like an enterprise analytics report\n- Be concise but professional\n- DO NOT invent fake numbers\n- Do not include page numbering or section numbering like \"Page 1 of 6\" in headings.\n- Focus on backend engineering, cybersecurity, AI, cloud and DevOps trends\n`\n    },\n\n    {\n      role: \"user\",\n\n      content: JSON.stringify($json, null, 2)\n    }\n  ]\n})\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -176,
+        -48
+      ],
+      "id": "1771e4b9-e97d-47d0-b10e-883f0ff9d152",
+      "name": "AI Trend Analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "const roadmap = $json.choices[0].message.content;\n\nreturn [\n  {\n    json: {\n      roadmap\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -48
+      ],
+      "id": "f1f23c03-da15-458c-8189-350926640b63",
+      "name": "Roadmap Formatter"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003581850016",
+        "text": "={{$json.roadmap.slice(0,3500)}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        -48
+      ],
+      "id": "f08eccd0-9f5f-4684-8b55-30dd6b2b7f7d",
+      "name": "Send a text message",
+      "webhookId": "766d9325-cd34-487f-8449-36eed206a456",
+      "credentials": {
+        "telegramApi": {
+          "id": "XvdTwdBWuWK92Tg4",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const skillCounts = {};\nconst categoryCounts = {};\n\nfor (const item of items) {\n\n  const skills = [\n\n    ...(item.json[\"Important Skills\"]\n      ? item.json[\"Important Skills\"]\n          .split(\",\")\n          .map(s => s.trim())\n      : []),\n\n    ...(item.json.tags || [])\n  ];\n\n  // Prevent duplicate counting\n  const uniqueSkills =\n    [...new Set(skills)];\n\n  for (let skill of uniqueSkills) {\n\n    skill =\n      skill.toLowerCase().trim();\n\n    if (!skill) continue;\n\n    // ----------------------------\n    // SKILL FREQUENCY\n    // ----------------------------\n\n    skillCounts[skill] =\n      (skillCounts[skill] || 0) + 1;\n\n    // ----------------------------\n    // CATEGORY GROUPING\n    // ----------------------------\n\n    // CLOUD\n\n    if (\n      [\n        \"aws\",\n        \"azure\",\n        \"gcp\",\n        \"cloud\",\n        \"cloud security\",\n        \"cloud computing\"\n      ].includes(skill)\n    ) {\n\n      categoryCounts[\"Cloud\"] =\n        (categoryCounts[\"Cloud\"] || 0) + 1;\n    }\n\n    // DEVOPS\n\n    if (\n      [\n        \"docker\",\n        \"kubernetes\",\n        \"devops\",\n        \"jenkins\",\n        \"ansible\",\n        \"ci/cd\"\n      ].includes(skill)\n    ) {\n\n      categoryCounts[\"DevOps\"] =\n        (categoryCounts[\"DevOps\"] || 0) + 1;\n    }\n\n    // CYBERSECURITY\n\n    if (\n      [\n        \"security\",\n        \"cybersecurity\",\n        \"siem\",\n        \"pentesting\",\n        \"vulnerability management\",\n        \"threat intelligence\"\n      ].includes(skill)\n    ) {\n\n      categoryCounts[\"Cybersecurity\"] =\n        (categoryCounts[\"Cybersecurity\"] || 0) + 1;\n    }\n\n    // BACKEND\n\n    if (\n      [\n        \"python\",\n        \"flask\",\n        \"backend\",\n        \"backend engineering\",\n        \"api\",\n        \"apis\",\n        \"node.js\",\n        \"java\",\n        \"sql\"\n      ].includes(skill)\n    ) {\n\n      categoryCounts[\"Backend Engineering\"] =\n        (categoryCounts[\"Backend Engineering\"] || 0) + 1;\n    }\n\n    // AI / ML\n\n    if (\n      [\n        \"tensorflow\",\n        \"ai\",\n        \"ml\",\n        \"machine learning\",\n        \"deep learning\",\n        \"pytorch\"\n      ].includes(skill)\n    ) {\n\n      categoryCounts[\"AI/ML\"] =\n        (categoryCounts[\"AI/ML\"] || 0) + 1;\n    }\n  }\n}\n\nconst totalJobs = items.length;\n\n// -----------------------------------\n// TOP TRENDING SKILLS\n// -----------------------------------\n\nconst topSkills =\n\n  Object.entries(skillCounts)\n\n    .sort((a, b) => b[1] - a[1])\n\n    .slice(0, 15)\n\n    .map(([skill, count]) => {\n\n      const percentage =\n\n        Number(\n          (\n            (count / totalJobs) * 100\n          ).toFixed(1)\n        );\n\n      return {\n        skill,\n        count,\n        percentage\n      };\n    });\n\n// -----------------------------------\n// CATEGORY DISTRIBUTION\n// -----------------------------------\n\nconst totalCategoryCount =\n\n  Object.values(categoryCounts)\n    .reduce((a, b) => a + b, 0);\n\nconst categoryDistribution =\n\n  Object.entries(categoryCounts)\n\n    .sort((a, b) => b[1] - a[1])\n\n    .map(([category, count]) => {\n\n      const percentage =\n\n        Number(\n          (\n            (count / totalCategoryCount) * 100\n          ).toFixed(1)\n        );\n\n      return {\n        category,\n        count,\n        percentage\n      };\n    });\n// -----------------------------------\n// MARKET SUMMARY\n// -----------------------------------\n\nconst topSkill =\n\n  topSkills.length > 0\n    ? topSkills[0].skill\n    : \"unknown\";\n\n// -----------------------------------\n// FINAL OUTPUT\n// -----------------------------------\n\nreturn [\n\n  {\n    json: {\n\n      report_date:\n        new Date().toISOString(),\n\n      total_jobs:\n        totalJobs,\n\n      market_summary: {\n\n        hottest_skill:\n          topSkill,\n\n        total_unique_skills:\n          Object.keys(skillCounts).length\n      },\n\n      top_skills:\n        topSkills,\n\n      category_distribution:\n        categoryDistribution\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -48
+      ],
+      "id": "8c2994e1-ba54-4aae-825e-46973c257dad",
+      "name": "Skill Aggregator"
+    },
+    {
+      "parameters": {
+        "jsCode": "const analysis =\n  items[0].json.choices[0].message.content;\n\nconst analytics =\n  $('Skill Aggregator').first().json;\n\nconst topSkills =\n  analytics.top_skills || [];\n\nconst chartLabels =\n  topSkills\n    .slice(0, 6)\n    .map(skill => skill.skill);\n\nconst chartValues =\n  topSkills\n    .slice(0, 6)\n    .map(skill =>\n      parseFloat(skill.percentage)\n    );\n\nconst categories =\n  analytics.category_distribution || [];\n\nconst pieLabels =\n  categories.map(\n    c => c.category\n  );\n\nconst pieValues =\n  categories.map(\n    c => c.percentage\n  );\n\nconst summary =\n  analytics.market_summary || {};\n\nconst totalJobs =\n  analytics.total_jobs || 0;\n\n// ---------- SKILL CARDS ----------\n\nconst skillCards = topSkills\n  .slice(0, 6)\n  .map(skill => `\n    <div class=\"card\">\n      <h3>${skill.skill.toUpperCase()}</h3>\n\n      <div class=\"big-number\">\n        ${skill.percentage}%\n      </div>\n\n      <p>\n        ${skill.count} job postings\n      </p>\n    </div>\n  `)\n  .join(\"\");\n\n// ---------- CATEGORY TABLE ----------\n\nconst categoryRows =\n  categories.map(cat => `\n    <tr>\n      <td>${cat.category}</td>\n      <td>${cat.count}</td>\n      <td>${cat.percentage}%</td>\n    </tr>\n  `).join(\"\");\n\n// ---------- FINAL HTML ----------\n\nconst html = `\n<html>\n\n<head>\n\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n\n<script src=\"https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels\"></script>\n\n<script src=\"https://cdn.jsdelivr.net/npm/marked/marked.min.js\"></script>\n\n<style>\n\n@page {\n  margin: 20px;\n}\n\nbody {\n  background: #0f172a;\n  color: #e2e8f0;\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 28px;\n}\n\n/* ---------- HEADINGS ---------- */\n\nh1 {\n  color: #38bdf8;\n  margin-bottom: 10px;\n  font-size: 38px;\n}\n\nh2 {\n  color: #38bdf8;\n  margin-top: 28px;\n  margin-bottom: 16px;\n  font-size: 28px;\n}\n\nh1, h2, h3, h4 {\n  page-break-after: avoid;\n  break-after: avoid;\n}\n\n/* ---------- SUBTITLE ---------- */\n\n.subtitle {\n  color: #94a3b8;\n  margin-bottom: 28px;\n  font-size: 16px;\n}\n\n/* ---------- METRIC CARDS ---------- */\n\n.metric-grid {\n  display: flex;\n  gap: 18px;\n  margin-top: 20px;\n  margin-bottom: 24px;\n}\n\n.metric-card {\n  background: #1e293b;\n  padding: 20px;\n  border-radius: 14px;\n  width: 240px;\n\n  box-shadow:\n    0 4px 10px rgba(0,0,0,0.22);\n\n  page-break-inside: avoid;\n  break-inside: avoid;\n}\n\n.metric-title {\n  color: #94a3b8;\n  font-size: 14px;\n}\n\n.metric-value {\n\n  font-size: 24px;\n\n  color: #22c55e;\n\n  margin-top: 10px;\n\n  font-weight: bold;\n\n  line-height: 1.1;\n\n  word-break: break-word;\n\n  text-transform: capitalize;\n\n  letter-spacing: -1px;\n}\n\n/* ---------- CHART ---------- */\n\n.chart-wrapper {\n  background: #1e293b;\n  padding: 18px 24px;\n  border-radius: 14px;\n  margin-bottom: 22px;\n\n  page-break-inside: avoid;\n  break-inside: avoid;\n}\n\n.chart-container {\n  height: 520px;\n  width: 100%;\n  position: relative;\n}\n\n/* ---------- SKILL DASHBOARD ---------- */\n\n.dashboard {\n  display: flex;\n  gap: 18px;\n  flex-wrap: wrap;\n  margin-bottom: 28px;\n}\n\n.card {\n  background: #1e293b;\n  padding: 18px;\n  border-radius: 14px;\n  width: 180px;\n\n  box-shadow:\n    0 4px 10px rgba(0,0,0,0.22);\n\n  page-break-inside: avoid;\n  break-inside: avoid;\n}\n\n.card h3 {\n  margin-top: 0;\n  margin-bottom: 12px;\n  color: #38bdf8;\n  font-size: 22px;\n}\n\n.big-number {\n  font-size: 34px;\n  font-weight: bold;\n  color: #22c55e;\n  margin-bottom: 8px;\n}\n\n.card p {\n  margin: 0;\n  color: #cbd5e1;\n}\n\n/* ---------- TABLE ---------- */\n\ntable {\n  width: 100%;\n  border-collapse: collapse;\n  margin-top: 18px;\n  margin-bottom: 24px;\n\n  page-break-inside: avoid;\n  break-inside: avoid;\n}\n\nth {\n  background: #38bdf8;\n  color: #0f172a;\n  padding: 12px;\n  font-size: 15px;\n}\n\ntd {\n  background: #1e293b;\n  padding: 12px;\n  border-bottom:\n    1px solid #334155;\n}\n\n/* ---------- ANALYSIS ---------- */\n\n.analysis-box {\n\n  background: #1e293b;\n\n  padding: 22px;\n\n  border-radius: 14px;\n\n  margin-top: 18px;\n\n  margin-bottom: 18px;\n\n  line-height: 1.45;\n\n  page-break-inside: auto;\n\n  break-inside: auto;\n}\n\n.analysis-box h1,\n.analysis-box h2,\n.analysis-box h3,\n.analysis-box h4 {\n\n  color: #38bdf8;\n\n  margin-top: 18px;\n\n  margin-bottom: 8px;\n}\n\n.analysis-box p {\n\n  margin-top: 6px;\n\n  margin-bottom: 8px;\n}\n\n.analysis-box ul,\n.analysis-box ol {\n\n  margin-top: 6px;\n\n  margin-bottom: 10px;\n\n  padding-left: 22px;\n}\n\n.analysis-box li {\n\n  margin-top: 5px;\n\n  margin-bottom: 5px;\n}\n\n/* ---------- PAGE BREAK CONTROL ---------- */\n\ntable, tr, td {\n  page-break-inside: avoid;\n  break-inside: avoid;\n}\n\ncanvas {\n  max-width: 100%;\n}\n\n.section {\n  page-break-inside: avoid;\n  break-inside: avoid;\n}\n\n</style>\n\n</head>\n\n<body>\n\n<h1>\nAI Career Intelligence Report\n</h1>\n\n<div class=\"subtitle\">\nWeekly Technical Market Analytics Dashboard\n</div>\n\n<div class=\"metric-grid\">\n\n  <div class=\"metric-card\">\n    <div class=\"metric-title\">\n      Total Jobs Analyzed\n    </div>\n\n    <div class=\"metric-value\">\n      ${totalJobs}\n    </div>\n  </div>\n\n  <div class=\"metric-card\">\n    <div class=\"metric-title\">\n      Hottest Skill\n    </div>\n\n    <div class=\"metric-value\">\n      ${summary.hottest_skill || \"N/A\"}\n    </div>\n  </div>\n\n  <div class=\"metric-card\">\n    <div class=\"metric-title\">\n      Unique Skills\n    </div>\n\n    <div class=\"metric-value\">\n      ${summary.total_unique_skills || 0}\n    </div>\n  </div>\n\n</div>\n\n<h2>\nTop Trending Skills\n</h2>\n\n<div class=\"chart-wrapper\">\n\n<div class=\"chart-container\">\n  <canvas id=\"skillsChart\"></canvas>\n</div>\n\n</div>\n\n<div class=\"dashboard\">\n${skillCards}\n</div>\n\n<h2>\nTechnology Category Distribution\n</h2>\n\n<div class=\"chart-wrapper\">\n\n  <div\n    style=\"\n      position: relative;\n      height: 340px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n    \"\n  >\n\n    <!-- Custom Legend -->\n\n    <div\n      style=\"\n        position: absolute;\n        top: 10px;\n        right: 20px;\n        display: flex;\n        flex-direction: column;\n        gap: 12px;\n        color: #e2e8f0;\n        font-size: 14px;\n        font-weight: 600;\n      \"\n    >\n\n      <div>\n        <span style=\"color:#38bdf8;\">■</span>\n        Backend Engineering\n      </div>\n\n      <div>\n        <span style=\"color:#22c55e;\">■</span>\n        Cloud\n      </div>\n\n      <div>\n        <span style=\"color:#f59e0b;\">■</span>\n        DevOps\n      </div>\n\n    </div>\n\n    <!-- Pie Chart -->\n\n    <div\n      style=\"\n        width: 300px;\n        height: 300px;\n      \"\n    >\n\n      <canvas id=\"pieChart\"></canvas>\n\n    </div>\n\n  </div>\n\n</div>\n\n<table>\n\n<tr>\n  <th>Category</th>\n  <th>Count</th>\n  <th>Percentage</th>\n</tr>\n\n${categoryRows}\n\n</table>\n\n<h2>\nAI Market Intelligence Analysis\n</h2>\n\n<div\n  class=\"analysis-box\"\n  id=\"analysisContent\"\n>\n</div>\n\n<script>\n\nconst ctx =\n  document\n    .getElementById('skillsChart');\n\nChart.register(ChartDataLabels);\n\nnew Chart(ctx, {\n\n  type: 'bar',\n\n  data: {\n\n    labels:\n      ${JSON.stringify(chartLabels)},\n\n    datasets: [{\n\n      label:\n        'Skill Demand %',\n\n      data:\n        ${JSON.stringify(chartValues.map(v => v * 4))},\n\n      backgroundColor: [\n        '#38bdf8',\n        '#22c55e',\n        '#f59e0b',\n        '#ef4444',\n        '#a855f7',\n        '#14b8a6'\n      ],\n\n      barThickness: 60,\n\n      borderRadius: 8,\n\n      datalabels: {\n\n        clip: false,\n      \n        anchor: 'end',\n      \n        align: 'end',\n      \n        offset: -2,\n      \n        color: '#ffffff',\n      \n        font: {\n          weight: 'bold',\n          size: 14\n        },\n      \n        formatter: (value) =>\n          (value / 4).toFixed(1) + '%'\n      }\n\n    }]\n  },\n\n  options: {\n\n      layout: {\n  \n      padding: {\n  \n        top: 27\n      }\n    },\n  \n    responsive: true,\n    maintainAspectRatio: false,\n    aspectRatio: 1.2,\n\n  plugins: {\n\n    legend: {\n\n      position: 'top',\n\n      fullSize: false,\n\n      labels: {\n\n        color: '#e2e8f0',\n\n        padding: 6,\n\n        boxWidth: 16,\n\n        font: {\n          size: 13\n        }\n      }\n    },\n\n      datalabels: {\n\n        display: true\n      }\n    },\n\n    scales: {\n\n      x: {\n        ticks: {\n          color: '#e2e8f0'\n        }\n      },\n\n      y: {\n\n        beginAtZero: true,\n      \n        max: 100,\n      \n        ticks: {\n      \n          color: '#e2e8f0',\n      \n          stepSize: 20\n        },\n      \n        grid: {\n      \n          color: 'rgba(255,255,255,0.06)'\n        }\n      },\n    }\n  }\n});\n\nconst pieCtx =\n\n  document\n    .getElementById('pieChart')\n    .getContext('2d');\n\nnew Chart(pieCtx, {\n\n  type: 'pie',\n\n  data: {\n\n    labels:\n      ${JSON.stringify(pieLabels)},\n\n    datasets: [{\n\n      radius: '95%',\n      \n      data:\n        ${JSON.stringify(pieValues)},\n\n      backgroundColor: [\n\n        '#38bdf8',\n        '#22c55e',\n        '#f59e0b',\n        '#ef4444',\n        '#a855f7',\n        '#14b8a6'\n      ]\n    }]\n  },\n\n  options: {\n\n    layout: {\n\n      padding: {\n\n        top: 30\n      }\n    },\n\n    responsive: true,\n\n    maintainAspectRatio: false,\n\n    plugins: {\n\n      legend: {\n        display: false\n      },\n\n      datalabels: {\n\n        clip: false,\n      \n        anchor: 'center',\n\n        align: 'center',\n        \n        offset: 0,\n      \n        color: '#ffffff',\n      \n        formatter:\n          value => value + '%',\n      \n        font: {\n      \n          weight: 'bold',\n      \n          size: 14\n        }\n      }\n    }\n  }\n});\n\n</script>\n\n<script>\n\ndocument.getElementById(\n  'analysisContent'\n).innerHTML =\n  marked.parse(\n    ${JSON.stringify(analysis)}\n  );\n\n</script>\n\n</body>\n</html>\n`;\n\nreturn [\n  {\n    json: {\n      html\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -272
+      ],
+      "id": "d3337436-9513-4823-b43e-49d376f37c6d",
+      "name": "HTML Report Generator"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "html",
+        "options": {
+          "fileName": "index.html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        -272
+      ],
+      "id": "73c284fa-c5b5-4dd6-b7e8-1b3085e2320c",
+      "name": "report.html"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        -272
+      ],
+      "id": "33804d82-d98d-460d-8c02-ca8dd6658ebf",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Weekly filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly filter": {
+      "main": [
+        [
+          {
+            "node": "Skill Aggregator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Trend Analysis": {
+      "main": [
+        [
+          {
+            "node": "Roadmap Formatter",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTML Report Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roadmap Formatter": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skill Aggregator": {
+      "main": [
+        [
+          {
+            "node": "AI Trend Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Report Generator": {
+      "main": [
+        [
+          {
+            "node": "report.html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "report.html": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "64fa725d-9b63-4a1a-b934-64209f52380b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e1a04c3d6dff05c39b5843aba075831d11b503485f16d9e3574f7e428fd6d490"
+  },
+  "id": "W6H0cBW2zJKVPahw",
+  "tags": []
+}

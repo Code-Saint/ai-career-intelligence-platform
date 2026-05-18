@@ -1,0 +1,88 @@
+{
+  "name": "Error Monitoring",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a0fabf32-ac7e-4041-a0a6-3830031b6ace",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const workflow =\n  $json.workflow?.name || \"Unknown Workflow\";\n\nconst error =\n  $json.execution?.error?.message || \"Unknown Error\";\n\nreturn [\n  {\n    json: {\n      message:\n`🚨 n8n Workflow Failed\n\nWorkflow:\n${workflow}\n\nError:\n${error}`\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a11f939f-8f32-4fcd-85de-f077fcb6cf55",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003942676570",
+        "text": "={{$json.message}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "4136ed64-6748-4d0c-8b2f-496d81199a06",
+      "name": "Send a text message",
+      "webhookId": "1ad81d22-6f7e-4375-8f6f-3fa4e7bd3c5b",
+      "credentials": {
+        "telegramApi": {
+          "id": "XvdTwdBWuWK92Tg4",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "56dbcc16-1d47-4a20-847d-c894e922ae4e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e1a04c3d6dff05c39b5843aba075831d11b503485f16d9e3574f7e428fd6d490"
+  },
+  "id": "NTeYxlxZhgZL7aSc",
+  "tags": []
+}
